@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>HSK1 Quiz</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --ok: #2ecc71;
+            --bad: #e74c3c;
+            --text: #2c3e50;
+            --accent: #d35400;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f7f7f7;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .card {
+            background: #fff;
+            margin: 30px auto;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transition: width .3s ease;
+        }
+
+        @media (min-width: 720px) {
+            .card {
+                width: 70%;
+            }
+        }
+
+        h1 {
+            color: var(--accent);
+            margin: 8px 0 16px;
+        }
+
+        h2 {
+            margin: 8px 0 12px;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .question {
+            font-size: 36px;
+            margin: 18px 0;
+        }
+
+        .btn {
+            margin-top: 12px;
+            padding: 10px 18px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff;
+            transition: .25s;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn.secondary {
+            background: #95a5a6;
+        }
+
+        .btn.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .options button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            background: #ecf0f1;
+            transition: .25s;
+        }
+
+        .options button:hover {
+            background: #e3e7ea;
+        }
+
+        .options button.correct {
+            background: var(--ok) !important;
+            color: #fff;
+            transform: scale(1.03);
+        }
+
+        .options button.wrong {
+            background: var(--bad) !important;
+            color: #fff;
+            transform: scale(1.03);
+        }
+
+        #result {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 12px 0;
+            min-height: 28px;
+        }
+
+        #result.correctText {
+            color: #27ae60;
+            animation: pulse .5s;
+        }
+
+        #result.wrongText {
+            color: #c0392b;
+            animation: shake .5s;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1)
+            }
+
+            50% {
+                transform: scale(1.18)
+            }
+
+            100% {
+                transform: scale(1)
+            }
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0)
+            }
+
+            25% {
+                transform: translateX(-8px)
+            }
+
+            75% {
+                transform: translateX(8px)
+            }
+        }
+
+        input[type="text"],
+        input[type="search"] {
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            width: 80%;
+            margin-top: 10px;
+        }
+
+        .celebration {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e67e22;
+            animation: pulse 1s infinite;
+        }
+
+        .muted {
+            color: #657786;
+        }
+
+        .stats {
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>HSK1 Quiz</h1>
+
+        <!-- View: Nhập tên -->
+        <div id="startScreen" class="view active">
+            <p>Nhập tên của bạn để bắt đầu:</p>
+            <input type="text" id="studentName" placeholder="Nhập tên của bạn..." />
+            <br />
+            <button class="btn" id="startBtn" onclick="startApp()">Bắt đầu</button>
+        </div>
+
+        <!-- View: Menu chọn bài -->
+        <div id="menu" class="view">
+            <h2 id="welcome"></h2>
+            <p class="muted">Chọn bài tập:</p>
+            <button class="btn" id="btnLesson1" onclick="startLesson(1)">Bài 1: Trắc nghiệm chọn đáp án</button>
+            <button class="btn" id="btnLesson2" onclick="startLesson(2)">Bài 2: Nhập câu trả lời</button>
+        </div>
+
+        <!-- View: Làm bài -->
+        <div id="quizView" class="view">
+            <h2 id="lessonTitle"></h2>
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <div id="inputArea" style="display:none;">
+                <input type="text" id="inputAnswer" class="input-answer" placeholder="Nhập đáp án..." />
+                <br />
+                <button class="btn" id="checkBtn">Kiểm tra</button>
+            </div>
+            <p id="result"></p>
+            <button class="btn" id="nextBtn">Câu tiếp theo</button>
+            <div class="stats muted" id="progress"></div>
+        </div>
+
+        <!-- View: Kết quả từng bài -->
+        <div id="lessonResultView" class="view">
+            <h2 id="lessonResultTitle"></h2>
+            <p>Câu đúng: <b id="lessonCorrect"></b></p>
+            <p>Câu sai: <b id="lessonWrong"></b></p>
+            <p>Tổng số câu: <b id="lessonTotal"></b></p>
+            <div id="nextActions"></div>
+        </div>
+
+        <!-- View: Kết quả cuối cùng -->
+        <div id="finalView" class="view">
+            <h2 class="celebration" id="finalCongrats"></h2>
+            <p>Bạn đã hoàn thành TẤT CẢ bài tập</p>
+            <p><b>Tổng câu đúng:</b> <b id="totalCorrect"></b></p>
+            <p><b>Tổng câu sai:</b> <b id="totalWrong"></b></p>
+            <p><b>Tổng số câu:</b> <b id="totalQuestions"></b></p>
+            <button class="btn" id="restartBtn">Làm lại từ đầu</button>
+        </div>
+    </div>
+
+    <script>
+        // ================== DỮ LIỆU ==================
+        const lesson1 = [{ hanzi: "你", options: ["tôi", "bạn", "anh ấy"], answer: "bạn" },
+        { hanzi: "你好", options: ["xin chào", "tạm biệt", "cảm ơn"], answer: "xin chào" },
+        { hanzi: "我", options: ["tôi", "chúng ta", "họ"], answer: "tôi" },
+        { hanzi: "英国", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Anh Quốc" },
+        { hanzi: "朋友", options: ["bạn bè", "học sinh", "bạn học"], answer: "bạn bè" },
+        { hanzi: "再见", options: ["xin chào", "tạm biệt", "cảm ơn"], answer: "tạm biệt" },
+        { hanzi: "中国", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Trung Quốc" },
+        { hanzi: "今年", options: ["năm ngoái", "năm nay", "năm sau"], answer: "năm nay" },
+        { hanzi: "谢谢", options: ["cảm ơn", "xin lỗi", "chào"], answer: "cảm ơn" },
+        { hanzi: "好", options: ["ngon", "tốt", "xấu"], answer: "tốt" },
+        { hanzi: "学生", options: ["học sinh", "công nhân", "bác sĩ"], answer: "học sinh" },
+        { hanzi: "越南", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Việt Nam" },
+        { hanzi: "对不起", options: ["cảm ơn", "xin lỗi", "chào"], answer: "xin lỗi" },
+        { hanzi: "她", options: ["bạn", "tôi", "anh ấy", "cô ấy"], answer: "cô ấy" },
+        { hanzi: "日本", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Nhật Bản" },
+        { hanzi: "他", options: ["bạn", "tôi", "anh ấy", "cô ấy"], answer: "anh ấy" },
+        { hanzi: "美国", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Mỹ" },
+        { hanzi: "老师", options: ["giáo viên", "học sinh", "bác sĩ"], answer: "giáo viên" },
+        { hanzi: "韩国", options: ["Nhật Bản", "Việt Nam", "Trung Quốc", "Mỹ", "Hàn Quốc", "Anh Quốc"], answer: "Hàn Quốc" },
+        { hanzi: "同学", options: ["bạn bè", "học sinh", "bạn học"], answer: "bạn học" },];
+
+        const lesson2 = [
+            { question: "你", answer: "bạn" },
+            { question: "tôi", answer: "我" },
+            { question: "好", answer: "tốt" },
+            { question: "cảm ơn", answer: "谢谢" }
+        ];
+
+        // ================== TRẠNG THÁI ==================
+        let studentName = "";
+        let currentLesson = 1;
+        let currentIndex = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+
+        // Lưu kết quả cuối của từng bài để tránh cộng dồn nhiều lần khi làm lại
+        const scores = {
+            1: { correct: 0, wrong: 0, total: lesson1.length, done: false },
+            2: { correct: 0, wrong: 0, total: lesson2.length, done: false },
+        };
+
+        // ================== TIỆN ÍCH VIEW ==================
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ================== KHỞI TẠO ==================
+        document.getElementById('nextBtn').addEventListener('click', () => nextQuestion());
+        document.getElementById('checkBtn').addEventListener('click', () => checkInputAnswer());
+        document.getElementById('restartBtn')?.addEventListener('click', () => restartAll());
+
+        // ================== LUỒNG CHÍNH ==================
+
+        function startApp() {
+            const name = document.getElementById('studentName').value.trim();
+            if (!name) return alert('Vui lòng nhập tên!');
+            studentName = name;
+            document.getElementById('welcome').innerText = `Chào ${studentName}, chọn bài tập để bắt đầu!`;
+            showView('menu');
+        }
+        function startLesson(lesson) {
+            currentLesson = lesson;
+            currentIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+
+            document.getElementById('lessonTitle').innerText = `Bài ${lesson}`;
+            document.getElementById('result').innerText = '';
+            document.getElementById('result').className = '';
+
+            // Cấu hình theo bài
+            const isLesson1 = lesson === 1;
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('inputArea').style.display = isLesson1 ? 'none' : 'block';
+            document.getElementById('nextBtn').style.display = isLesson1 ? 'inline-block' : 'none';
+            document.getElementById('progress').innerText = '';
+            const input = document.getElementById('inputAnswer');
+            input.removeEventListener('keydown', handleEnterKey);
+            if (!isLesson1) {
+                input.addEventListener('keydown', handleEnterKey);
+            }
+            loadQuestion();
+            showView('quizView');
+        }
+        function handleEnterKey(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                checkInputAnswer();
+            }
+        }
+        function loadQuestion() {
+            const isLesson1 = currentLesson === 1;
+            const data = isLesson1 ? lesson1 : lesson2;
+            const q = data[currentIndex];
+
+            // Reset vùng kết quả/tuỳ chọn
+            const resultEl = document.getElementById('result');
+            resultEl.innerText = '';
+            resultEl.className = '';
+            document.getElementById('options').innerHTML = '';
+
+            if (isLesson1) {
+                document.getElementById('question').innerText = q.hanzi;
+                q.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.textContent = opt;
+                    btn.addEventListener('click', () => checkSelectAnswer(btn, opt));
+                    document.getElementById('options').appendChild(btn);
+                });
+            } else {
+                document.getElementById('question').innerText = q.question;
+                const input = document.getElementById('inputAnswer');
+                input.value = '';
+                input.focus();
+            }
+
+            // Tiến độ
+            document.getElementById('progress').innerText = `Câu ${currentIndex + 1} / ${data.length}`;
+        }
+
+        function checkSelectAnswer(btn, choice) {
+            const correct = lesson1[currentIndex].answer;
+            const result = document.getElementById('result');
+            if (choice === correct) {
+                btn.classList.add('correct');
+                result.innerText = '✔ Đúng rồi!';
+                result.className = 'correctText';
+                correctCount++;
+            } else {
+                btn.classList.add('wrong');
+                result.innerText = '✘ Sai, đáp án đúng: ' + correct;
+                result.className = 'wrongText';
+                wrongCount++;
+            }
+            // Khoá các lựa chọn
+            document.querySelectorAll('#options button').forEach(b => b.disabled = true);
+        }
+
+        function checkInputAnswer() {
+            const userAns = document.getElementById('inputAnswer').value.trim();
+            const correct = lesson2[currentIndex].answer;
+            const result = document.getElementById('result');
+            if (userAns === correct) {
+                result.innerText = '✔ Đúng rồi!';
+                result.className = 'correctText';
+                correctCount++;
+            } else {
+                result.innerText = `✘ Sai, đáp án đúng: ${correct}`;
+                result.className = 'wrongText';
+                wrongCount++;
+            }
+            // Tự chuyển câu sau 900ms
+            setTimeout(nextQuestion, 900);
+        }
+
+        function nextQuestion() {
+            const isLesson1 = currentLesson === 1;
+            const totalQ = isLesson1 ? lesson1.length : lesson2.length;
+
+            currentIndex++;
+
+            if (currentIndex >= totalQ) {
+                // Lưu điểm cho bài hiện tại (ghi đè lần làm mới)
+                scores[currentLesson].correct = correctCount;
+                scores[currentLesson].wrong = wrongCount;
+                scores[currentLesson].done = true;
+
+                // Hiển thị kết quả bài hiện tại
+                showLessonResult();
+
+                // Nếu cả 2 bài đều xong, cũng chuẩn bị sẵn final stats
+                if (scores[1].done && scores[2].done) {
+                    updateFinalStats();
+                }
+            } else {
+                loadQuestion();
+            }
+        }
+
+        function showLessonResult() {
+            const s = scores[currentLesson];
+            document.getElementById('lessonResultTitle').innerText = `Hoàn thành Bài ${currentLesson}!`;
+            document.getElementById('lessonCorrect').innerText = s.correct;
+            document.getElementById('lessonWrong').innerText = s.wrong;
+            document.getElementById('lessonTotal').innerText = s.total;
+
+            const nextActions = document.getElementById('nextActions');
+            nextActions.innerHTML = '';
+
+
+            // Gợi ý bài chưa làm
+            const other = currentLesson === 1 ? 2 : 1;
+
+
+            if (!scores[other].done) {
+                const goOther = document.createElement('button');
+                goOther.className = 'btn';
+                goOther.style.marginLeft = '8px';
+                goOther.textContent = `Làm tiếp Bài ${other}`;
+                goOther.addEventListener('click', () => startLesson(other));
+                nextActions.appendChild(goOther);
+            } else {
+                // Nếu cả hai đã xong, gợi ý xem tổng kết
+
+                const restartBtn = document.createElement('button');
+                restartBtn.className = 'btn';
+                restartBtn.id = "restartBtn";
+                restartBtn.textContent = 'Làm lại từ đầu';
+                nextActions.appendChild(restartBtn);
+                const finalBtn = document.createElement('button');
+                finalBtn.className = 'btn';
+                finalBtn.style.marginLeft = '8px';
+                finalBtn.textContent = 'Xem thống kê tổng';
+                finalBtn.addEventListener('click', () => {
+                    updateFinalStats();
+                    showView('finalView');
+                });
+                nextActions.appendChild(finalBtn);
+            }
+
+            showView('lessonResultView');
+        }
+
+        function updateFinalStats() {
+            const totalCorrect = scores[1].correct + scores[2].correct;
+            const totalWrong = scores[1].wrong + scores[2].wrong;
+            const totalQ = scores[1].total + scores[2].total;
+
+            document.getElementById('finalCongrats').innerText = `🎉 Chúc mừng, ${studentName}! 🎉`;
+            document.getElementById('totalCorrect').innerText = totalCorrect;
+            document.getElementById('totalWrong').innerText = totalWrong;
+            document.getElementById('totalQuestions').innerText = totalQ;
+        }
+
+        function restartAll() {
+            // Reset toàn bộ
+            scores[1] = { correct: 0, wrong: 0, total: lesson1.length, done: false };
+            scores[2] = { correct: 0, wrong: 0, total: lesson2.length, done: false };
+            currentIndex = 0; correctCount = 0; wrongCount = 0; currentLesson = 1;
+            showView('menu');
+        }
+    </script>
+</body>
+
+</html>
